@@ -5,7 +5,6 @@ import com.comphenix.protocol.ProtocolLibrary;
 import com.comphenix.protocol.ProtocolManager;
 import com.comphenix.protocol.events.ListenerPriority;
 import com.comphenix.protocol.events.PacketAdapter;
-import com.comphenix.protocol.events.PacketContainer;
 import com.comphenix.protocol.events.PacketEvent;
 import com.comphenix.protocol.wrappers.EnumWrappers;
 import com.comphenix.protocol.wrappers.PlayerInfoData;
@@ -38,8 +37,6 @@ public class NickPacketManager {
         this.protocolManager = ProtocolLibrary.getProtocolManager();
     }
 
-    // ---------- Загрузка / сохранение ----------
-
     public void load() {
         if (file.exists()) {
             YamlConfiguration yml = YamlConfiguration.loadConfiguration(file);
@@ -58,7 +55,6 @@ public class NickPacketManager {
                 }
             }
         }
-        // Регистрируем слушатель пакетов
         registerPacketListener();
     }
 
@@ -76,8 +72,6 @@ public class NickPacketManager {
         }
     }
 
-    // ---------- Слушатель пакетов ----------
-
     private void registerPacketListener() {
         protocolManager.addPacketListener(new PacketAdapter(
                 plugin,
@@ -86,11 +80,11 @@ public class NickPacketManager {
         ) {
             @Override
             public void onPacketSending(PacketEvent event) {
-                // Нас интересуют только пакеты с действием ADD_PLAYER
-                // (при входе игрока или принудительном обновлении)
-                EnumWrappers.PlayerInfoAction action = event.getPacket()
+                // В новых версиях действия приходят как Set (набор)
+                Set<EnumWrappers.PlayerInfoAction> actions = event.getPacket()
                         .getPlayerInfoActions().read(0);
-                if (action != EnumWrappers.PlayerInfoAction.ADD_PLAYER) return;
+                
+                if (!actions.contains(EnumWrappers.PlayerInfoAction.ADD_PLAYER)) return;
 
                 List<PlayerInfoData> newList = new ArrayList<>();
                 List<PlayerInfoData> dataList = event.getPacket()
@@ -108,8 +102,6 @@ public class NickPacketManager {
                         continue;
                     }
 
-                    // Создаём новый профиль с тем же UUID и свойствами (скин),
-                    // но с новым именем (с поддержкой цветовых кодов '&')
                     WrappedGameProfile profile = data.getProfile();
                     WrappedGameProfile newProfile = new WrappedGameProfile(
                             profile.getUUID(),
@@ -121,7 +113,7 @@ public class NickPacketManager {
                             newProfile,
                             data.getLatency(),
                             data.getGameMode(),
-                            WrappedChatComponent.fromText(customNick) // отображаемое имя в табе
+                            WrappedChatComponent.fromText(ChatColor.translateAlternateColorCodes('&', customNick))
                     );
                     newList.add(newData);
                 }
@@ -129,8 +121,6 @@ public class NickPacketManager {
             }
         });
     }
-
-    // ---------- Публичные методы ----------
 
     public boolean hasNick(UUID id) {
         return nicks.containsKey(id);
@@ -188,10 +178,6 @@ public class NickPacketManager {
         }
     }
 
-    /**
-     * Принудительно обновляет пакеты информации об игроке для всех онлайн-игроков.
-     * Именно это заставляет клиенты увидеть новый ник над головой и в табе.
-     */
     public void refreshPlayer(Player player) {
         for (Player viewer : Bukkit.getOnlinePlayers()) {
             viewer.hidePlayer(plugin, player);
