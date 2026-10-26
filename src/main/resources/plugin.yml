@@ -1,0 +1,16 @@
+name: NickPackets
+version: 1.0.0
+main: me.nickpackets.NickPacketsPlugin
+api-version: '1.21'
+description: Смена ника над головой через пакеты (ProtocolLib)
+depend: [ProtocolLib]
+
+commands:
+  nick:
+    description: Сменить или сбросить ник игрока
+    usage: /nick <игрок> <новый ник|reset>
+    permission: nickpackets.nick
+
+permissions:
+  nickpackets.nick:
+    default: op
